@@ -1,22 +1,30 @@
 clear all
 close all
+clc;
 
 tic
 
-addpath('~/work/MATLAB/unlocbox')
-init_unlocbox();
+%addpath('~/work/MATLAB/unlocbox')
+%init_unlocbox();
 
 worm_id = 1;
-worm_data = h5read(['~/src/local-linear-segmentation/sample_data/' ...
-                    'worm_tseries.h5'], ['/' num2str(worm_id) ...
+worm_data = h5read(['worm_tseries.h5'], ['/' num2str(worm_id) ...
                     '/tseries']);
 %worm_data= standardize(worm_data);
 figdir = '../figures/';
 
+%%
+data = csvread('BTMF_imputed_mat_40NM.csv');
+data = data(2:end,2:end);
+worm_data = data(:,1:60*144);
+save('traffic.mat','data');
+load('traffic.mat','data');
+
+%%
 rng(1);
 % %% Tensor decomp params
 R = 6;
-M = 6;
+M = 144;
 %M = 10;
 eta = 0.05;
 eta2 = 0.1;
@@ -25,6 +33,9 @@ center = 1;
 regularization = 'TV';
 max_iter = 1000;
 numclust = 3;
+
+%%
+plot(worm_data')
 
 %% Good for TV-l0
 % R = 12;

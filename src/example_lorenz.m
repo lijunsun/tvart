@@ -1,6 +1,7 @@
 clear all
-close all
-addpath('~/work/MATLAB/unlocbox')
+close all;
+clc;
+addpath('C:\Users\sunli\Dropbox\CommonMatlab\unlocbox')
 init_unlocbox();
 
 load('../data/lorenz_0_001.mat', 'state', 'step');
@@ -71,15 +72,55 @@ X = X + noise*randn(size(X));
 %                        'atol', 1e-6, ...
 %                        'max_iter', max_iter);
 
+%% traffic
+X = load('traffic.mat','data');
+X = X.data;
+X = X(:,1:4000);
+M = 1;
+R = 10;
+max_iter = 100;   
+
+
+%%
+addpath('C:\Users\sunli\Dropbox\CommonMatlab\unlocbox')
+init_unlocbox();
+init.A = A;
+init.B = B;
+init.C = C;
+init.lambda = lambda;
+warning('on');
+
+
+%%
+%profile on;
+beta = 400;  
+eta1 = 0.01;
+
+beta = 400;
+eta1 = 0.01;
+R = 10;
+max_iter = 10;
 [lambda, A, B, C, cost, Xten, Yten, rmse] = ...
-    TVART_alt_min(X, M, R, ...
+    TVART_alt_min_Lijun(X, M, R, ...
                   'center', center, ...
                   'eta', eta1, ...
                   'beta', beta, ...
                   'regularization', 'TV', ...
                   'verbosity', 2, ...
-                  'max_iter', max_iter);
+                  'max_iter', max_iter, ...
+                  'init', init);
+                  %'init', false);
+                  
+A_r = A; B_r = B; C_r = C; lambda_r = lambda;
+% %W_r = W; 
+% lambda_r = lambda;
+W_r = C;
+figure;
+plot(M*(1:length(C_r)), C_r, 'linewidth', 0.5);
 
+%profile viewer;
+   %[reg1: error, reg2: temporal beta, reg3: norm eta]
+   
 % [lambda, A, B, C, cost, Xten, Yten, rmse] = ...
 %     tensor_DMD_alt_min(X, M, R, ...
 %                        'center', center, ...
@@ -112,21 +153,18 @@ X = X + noise*randn(size(X));
 %                        'atol', 1e-4, ...
 %                        'max_iter', max_iter);
 
-A_r = A; B_r = B; C_r = C; lambda_r = lambda;
-% %W_r = W; 
-% lambda_r = lambda;
-W_r = C;
+
 %[lambda_r, A_r, B_r, C_r, W_r] = rebalance_2(A, B, C, W_r, 1, 1e-6);
 %[lambda_r, A_r, B_r, C_r, W_r] = reorder_components(lambda_r, A_r, B_r, ...
 %                                                     C_r, W_r);
 
 
-figure(1);
-semilogy(cost);
-hold on
-semilogy(rmse, 'r-')
-legend({'cost', 'RMSE'})
-axis('auto')
+
+% semilogy(cost);
+% hold on
+% semilogy(rmse, 'r-')
+% legend({'cost', 'RMSE'})
+% axis('auto')
 
 % [~,I] = sort(lambda, 'descend');
 % A = A(:,I);
@@ -140,11 +178,70 @@ axis('auto')
 %         A(:,i) = A(:,i) * -1;
 %     end
 % end
+
+
+%%
+figure;
+imagesc(C');
+
+figure;
+for i = 1:10
+    subplot(10,1,i);
+    plot(diff(C(:,i)));
+end
+
+%%
+clc;
+YY = X(:,2:200);
+XX = X(:,1:199);
+AA = double(ktensor(ones(R,1),A,B,C(1:199,:)));
+AA = AA(:,1:214,:);
+imagesc(AA(:,:,1));
+Yhat = zeros(size(YY));
+for i = 1:199
+    Yhat(:,i) = AA(:,:,i) * XX(:,i);
+end
+
+%plot(YY')
+%plot(Yhat');
+sqrt(sum(sum((YY-Yhat).^2))/prod(size(YY)))
+
+n = 800;
+data = load('traffic.mat','data');
+data = data.data;
+AA = double(ktensor(ones(R,1),A,B,C(n,:)));
+AA = AA(:,1:end-1);
+Yhat = AA * data(:,n+1);
+yy = data(:,n+2);
+sqrt(sum((Yhat-yy).^2)/214)
+plot(Yhat,yy,'s')
+
+imagesc(AA);
+
+%%
+AA = double(ktensor(ones(R,1),A,B,C(1:199,:)));
+AA = AA(:,1:214,:);
+r = 10;
+imagesc(A(:,r).* permute(B(:,r),[2,1]))
+%%
+D = pdist(B(1:end-1,:));
+Z = linkage(squareform(D), 'complete');
+leafOrder = optimalleaforder(Z,D);
+imagesc(B(leafOrder,:));
+%%
+figure;
+imagesc(C');
+
+%%
+clc;
+w = tsne(C,'NumPCAComponents',5,'Perplexity',100);
+gscatter(w(:,1),w(:,2),cluster_ids)
+
 %% Clustering
 %D = compute_pdist(A_r, B_r, C_r*diag(lambda_r));
 D = pdist(C);
 Z = linkage(squareform(D), 'complete');
-cluster_ids = cluster(Z, 'maxclust', 3);
+cluster_ids = cluster(Z, 'maxclust', 7);
 T = size(C_r, 1);
 N = size(A_r, 1);
 xA = zeros(T, N*(N+center));
@@ -158,7 +255,7 @@ end
 
 figure(2);
 ax1 = subplot(3,1,1);
-plot(1:length(X), X', 'linewidth', 0.5, 'color', [0,0,0]+0.4)
+%plot(1:length(X), X', 'linewidth', 0.5, 'color', [0,0,0]+0.4)
 title('Observations')
 %legend({'x_1', 'x_2', 'x_3'})
 % ax1 = subplot(3,1,2);
@@ -181,23 +278,21 @@ title('Cluster')
 xlabel('Time step')
 linkaxes([ax1 ax2 ax3], 'x')
 figure(2);
-xlim([0, 2000])
+%xlim([0, 2000])
 %axis tight
 %ylim([0.0475, 0.0491])
-set(gcf, 'Color', 'w', 'Position', [100 200 600 700]);
-set(gcf, 'PaperUnits', 'inches', ...
-         'PaperPosition', [0 0 6.5 7.5], 'PaperPositionMode', 'manual');
-print('-depsc2', '-loose', [figdir 'example_lorenz.eps']);
+% set(gcf, 'Color', 'w', 'Position', [100 200 600 700]);
+% set(gcf, 'PaperUnits', 'inches', ...
+%          'PaperPosition', [0 0 6.5 7.5], 'PaperPositionMode', 'manual');
+% print('-depsc2', '-loose', [figdir 'example_lorenz.eps']);
 
-disp(lambda_r)
+% disp(lambda_r)
 % fprintf('A_r^T A_r = \n')
 % disp(A_r'*A_r)
 % fprintf('B^T B = \n')
 % disp(B'*B)
 % fprintf('C_r^T C_r = \n')
 % disp(C_r'*C_r)
-
-save(save_file)
 
 
 %% Compare scaled Jacobians

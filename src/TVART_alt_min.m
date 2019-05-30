@@ -82,7 +82,7 @@ function [lambda, A, B, C, cost_vec, varargout] = ...
     
     if ~(strcmp(regularization, 'TV') || ...
          strcmp(regularization, 'spline') || ...
-         strcmp(regularization, 'TVL0'))
+         strcmp(regularization, 'TV0'))
         disp(['Received regularization = ' regularization])
         error(['Unknown regularization type, should be one of ''TV'', ' ...
                '''spline,'' or ''TVL0''']);
@@ -505,12 +505,14 @@ function [c,varargout] = cost(X, Y, A, B, C, N, M, T, r, ...
         c = c + ...
             0.5 * norm(Y(:,:,k) - Ypred_k, 'fro')^2;
     end
+    reg1 = c;
     rmse = sqrt(2 * c / (N * M * T));
     if beta > 0
         if strcmp(regularization, 'TV')
             %% L1 TV
             DC = diff(C);
             c = c + beta * sum(abs(DC(:)));
+            reg2 = beta * sum(abs(DC(:)));
         % elseif strcmp(regularization, 'groupTV')
         %     %% Group TV
         %     for k = 2:T
@@ -520,14 +522,20 @@ function [c,varargout] = cost(X, Y, A, B, C, N, M, T, r, ...
             diff_mat = setup_smoother(T);
             c = c + 0.5 * beta * norm(diff_mat * C, 'fro')^2;
             %c = c + 0.5 * beta * norm(diff(C), 'fro')^2;
+            reg2 = 0.5 * beta * norm(diff_mat * C, 'fro')^2;
         elseif strcmp(regularization, 'TV0')
             %% L0 TV
             c = c + beta * nnz(diff(C));
+            reg2 = beta * nnz(diff(C));
         end
     end
     if ~proximal
         if size(B,1) > N
             c = c + 0.5 / (eta) * ...
+                (norm(A, 'fro')^2 + ...
+                 norm(B(1:N,:), 'fro')^2 + ...
+                 norm(C, 'fro')^2);
+             reg3 = 0.5 / (eta) * ...
                 (norm(A, 'fro')^2 + ...
                  norm(B(1:N,:), 'fro')^2 + ...
                  norm(C, 'fro')^2);
@@ -538,6 +546,8 @@ function [c,varargout] = cost(X, Y, A, B, C, N, M, T, r, ...
                  norm(C, 'fro')^2);
         end
     end
+    
+    disp([reg1,reg2,reg3]);
     
     if nargout ==2
         varargout{1} = rmse;

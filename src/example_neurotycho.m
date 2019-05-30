@@ -1,5 +1,6 @@
 clear all
 close all
+clc;
 set(0,'DefaultFigurePaperPositionMode','auto')
 
 %set(0,'DefaultFigurePosition',[25,25,500,500]);
