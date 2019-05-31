@@ -89,10 +89,9 @@ function [lambda, A, B, C, cost_vec, varargout] = ...
     end
     
     N = size(data, 1);
-    M = window_size;
     t = size(data, 2);
-    
-    T = floor((t-1) / window_size);
+    M = 1;
+    T = t-1;
     X = data(:, 1:end-1);
     X = X(:, 1:M*T);
     Y = data(:, 2:end);

@@ -4,15 +4,6 @@ clc;
 addpath('C:\Users\sunli\Dropbox\CommonMatlab\unlocbox')
 init_unlocbox();
 
-load('../data/lorenz_0_001.mat', 'state', 'step');
-
-save_file = 'output_lorenz.mat';
-figdir = '../figures/';
-dt = step;
-clear('step');
-
-rng(1)
-%% Tensor DMD algorithm
 
 % %% Good params w/o standardization, w/ TV-l0
 M = 10;
@@ -23,67 +14,16 @@ eta2 = 1e-3;               % relaxed vars
 beta = 4e2;               % regularization
 center = 1;
 noise = 1.0;
-% %% Good w/ standardization
-% M = 3;
-% R = 6;
-% max_iter = 140;             % iterations
-% eta1 = 1e2;                 % Tikhonov/proximal
-% eta2 = 1e-4;               % relaxed vars
-% beta = 0.001;               % regularization
-% center = 0;
-% noise = 0.2;
-%% Good params w/o standardization or centering
-% M = 10;
-% R = 6;
-% max_iter = 2000;             % iterations
-% eta1 = 1e-2;               % Tikhonov/proximal
-% eta2 = 1e-1;               % relaxed vars
-% beta = 20;               % regularization
-% center = 1;
-% noise = 1.0;
 
-state = state(:, 1:4200);
-%X = state(:, 1:2000);
-X = state;
-%X = randn(30,3) * state;
-% X = standardize(X);
-X = X + noise*randn(size(X));
-%X = X - repmat(mean(X,2), 1, length(X));
-%X = X ./ repmat(std(X,0,2), 1, length(X));
-
-% [lambda, A, B, C, cost, Xten, Yten, rmse] = ...
-%     tensor_DMD_ALS_smooth(X, M, R, ...
-%                        'center', center, ...
-%                        'eta1', eta1, ...
-%                        'eta2', eta2, ...
-%                        'beta', beta, ...
-%                        'max_iter', max_iter);
-
-% [lambda, A, B, C, cost, Xten, Yten, rmse, W] = ...
-%     tensor_DMD_ALS_aux(X, M, R, ...
-%                        'center', center, ...
-%                        'eta1', eta1, ...
-%                        'eta2', eta2, ...
-%                        'beta', beta, ...
-%                        'proximal', 0, ...
-%                        'verbosity', 2,...
-%                        'regularization', 'TV', ...
-%                        'rtol', 1e-6, ...
-%                        'atol', 1e-6, ...
-%                        'max_iter', max_iter);
 
 %% traffic
-X = load('traffic.mat','data');
-X = X.data;
-X = X(:,1:4000);
-M = 1;
-R = 10;
-max_iter = 100;   
-
-
+load('hangzhou.mat');
+X = reshape(permute(tensor,[3,2,1]),[25*108,80]);
+X = X';
+X = X(:,1:2000);
+plot(X);
 %%
-addpath('C:\Users\sunli\Dropbox\CommonMatlab\unlocbox')
-init_unlocbox();
+
 init.A = A;
 init.B = B;
 init.C = C;
@@ -97,10 +37,10 @@ tic;
 beta = 400;  
 eta1 = 0.01;
 
-beta = 400;
-eta1 = 0.01;
+beta = 1000;
+eta1 = 0.00001;
 R = 10;
-max_iter = 10;
+max_iter = 100;
 [lambda, A, B, C, cost, Xten, Yten, rmse] = ...
     TVART_alt_min_Lijun(X, M, R, ...
                   'center', center, ...
@@ -197,7 +137,7 @@ clc;
 YY = X(:,2:200);
 XX = X(:,1:199);
 AA = double(ktensor(ones(R,1),A,B,C(1:199,:)));
-AA = AA(:,1:214,:);
+AA = AA(:,1:size(AA,2)-1,:);
 imagesc(AA(:,:,1));
 Yhat = zeros(size(YY));
 for i = 1:199
@@ -208,14 +148,15 @@ end
 %plot(Yhat');
 sqrt(sum(sum((YY-Yhat).^2))/prod(size(YY)))
 
-n = 800;
-data = load('traffic.mat','data');
-data = data.data;
+n = 1999;
+
+data = reshape(permute(tensor,[3,2,1]),[25*108,80]);
+data = data';
 AA = double(ktensor(ones(R,1),A,B,C(n,:)));
 AA = AA(:,1:end-1);
 Yhat = AA * data(:,n+1);
 yy = data(:,n+2);
-sqrt(sum((Yhat-yy).^2)/214)
+sqrt(sum((Yhat-yy).^2)/size(A,1))
 plot(Yhat,yy,'s')
 
 imagesc(AA);
