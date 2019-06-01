@@ -21,7 +21,7 @@ load('hangzhou.mat');
 X = reshape(permute(tensor,[3,2,1]),[25*108,80]);
 X = X';
 X = X(:,1:2000);
-plot(X);
+plot(X');
 %%
 
 init.A = A;
@@ -37,10 +37,10 @@ tic;
 beta = 400;  
 eta1 = 0.01;
 
-beta = 1000;
-eta1 = 0.00001;
+beta = 0;
+eta1 = 1000000;
 R = 10;
-max_iter = 100;
+max_iter = 50;
 [lambda, A, B, C, cost, Xten, Yten, rmse] = ...
     TVART_alt_min_Lijun(X, M, R, ...
                   'center', center, ...
@@ -49,7 +49,7 @@ max_iter = 100;
                   'regularization', 'TV', ...
                   'verbosity', 2, ...
                   'max_iter', max_iter, ...
-                  'init', init);
+                  'init', false);
                   %'init', false);
                   
 A_r = A; B_r = B; C_r = C; lambda_r = lambda;
@@ -134,21 +134,21 @@ end
 
 %%
 clc;
-YY = X(:,2:200);
-XX = X(:,1:199);
-AA = double(ktensor(ones(R,1),A,B,C(1:199,:)));
-AA = AA(:,1:size(AA,2)-1,:);
-imagesc(AA(:,:,1));
+YY = X(:,2:end);
+XX = X(:,1:end-1);
+
 Yhat = zeros(size(YY));
-for i = 1:199
-    Yhat(:,i) = AA(:,:,i) * XX(:,i);
+for i = 1:size(X,2)-1
+    AA = A * diag(C(i,:)) *B';
+    AA = AA(:,1:end-1);
+    Yhat(:,i) = AA* XX(:,i);
 end
 
 %plot(YY')
 %plot(Yhat');
 sqrt(sum(sum((YY-Yhat).^2))/prod(size(YY)))
 
-n = 1999;
+n = 1555;
 
 data = reshape(permute(tensor,[3,2,1]),[25*108,80]);
 data = data';

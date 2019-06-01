@@ -471,8 +471,8 @@ function Cnew = solve_C_cg(X, Y, A, B, C, N, M, T, r, eta, beta, proximal)
         Ct = reshape(c, size(C));
         Zt = zeros(size(C));
         for k = 1:T
-            Xk = X(:, :, k);
-            Yk = Y(:, :, k);
+            Xk = X(:, k);
+            Yk = Y(:, k);
             % rhs = diag(B' * Xk * Yk' * A);
             L = B'* Xk * Xk' * B;
             R = A' * A;
@@ -486,8 +486,8 @@ function Cnew = solve_C_cg(X, Y, A, B, C, N, M, T, r, eta, beta, proximal)
     
     rhs = zeros(size(C));
     for k = 1:T
-        Xk = X(:, :, k);
-        Yk = Y(:, :, k);
+        Xk = X(:, k);
+        Yk = Y(:, k);
         rhs(k, :) = diag(B' * Xk * Yk' * A);
     end
     if proximal
