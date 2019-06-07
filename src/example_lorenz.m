@@ -11,7 +11,6 @@ figdir = '../figures/';
 dt = step;
 clear('step');
 
-rng(1)
 %% Tensor DMD algorithm
 
 % %% Good params w/o standardization, w/ TV-l0
@@ -75,11 +74,12 @@ X = X + noise*randn(size(X));
 %% traffic
 X = load('traffic.mat','data');
 X = X.data;
-X = X(:,1:4000);
+days = 30;
+X = X(:,1:144*days);
 M = 1;
 R = 10;
 max_iter = 100;   
-
+center = 1;
 
 %%
 addpath('C:\Users\sunli\Dropbox\CommonMatlab\unlocbox')
@@ -87,29 +87,109 @@ init_unlocbox();
 init.A = A;
 init.B = B;
 init.C = C;
-init.lambda = lambda;
 warning('on');
 
 
 %%
-%profile on;
-tic;
-beta = 400;  
-eta1 = 0.01;
 
-beta = 4000;
-eta1 = 0.01;
-R = 10;
-max_iter = 10;
+% initialize parameters
+% Xint = reshape(X,[size(X,1),144,days]);
+% Xint = mean(Xint,3);
+% beta = 100;
+% eta1 = 0.01;
+% R = 10;
+% max_iter = 200;
+% [lambda, A, B, C, cost, Xten, Yten, rmse] = TVART_alt_min_Lijun(Xint, M, R, ...
+%                   'center', center, ...
+%                   'eta', eta1, ...
+%                   'beta', beta, ...
+%                   'regularization', 'spline', ...
+%                   'verbosity', 2, ...
+%                   'max_iter', max_iter, ...
+%                   'init', false);
+%                   %'init', false);
+%                   
+% C(end+1,:) = C(end,:);
+% init.A = A;
+% init.B = B;
+% C = repmat(C,[days,1]);
+% C = C(1:end-1,:);
+% init.C = C;
+% init.lambda = lambda;
+% warning('on');
+
+
+%%
+clc;
+profile on;
+tic;
 [lambda, A, B, C, cost, Xten, Yten, rmse] = TVART_alt_min_Lijun(X, M, R, ...
                   'center', center, ...
                   'eta', eta1, ...
                   'beta', beta, ...
+                  'beta_peroid', beta_peroid,...
                   'regularization', 'spline', ...
                   'verbosity', 2, ...
+                  'peroid',144, ...
+                  'max_iter', 5, ...
+                  'init', false);
+toc;
+
+% tic;
+% [lambda, A, B, C, cost, Xten, Yten, rmse] = TVART_alt_min(X, M, R, ...
+%                   'center', center, ...
+%                   'eta', eta1, ...
+%                   'beta', beta, ...
+%                   'regularization', 'spline', ...
+%                   'verbosity', 2, ...
+%                   'max_iter', 5, ...
+%                   'init', false);
+% toc;
+profile viewer;
+%%
+%profile on;
+center = 1;
+close all;
+clc;
+tic;
+
+% beta = 0.0000001;
+% eta1 = 0.001;
+% R = 10;
+% max_iter = 10;
+% [lambda, A, B, C, cost, Xten, Yten, rmse] = TVART_alt_min_Lijun(X, M, R, ...
+%                   'center', center, ...
+%                   'eta', eta1, ...
+%                   'beta', beta, ...
+%                   'regularization', 'spline', ...
+%                   'verbosity', 2, ...
+%                   'max_iter', max_iter, ...
+%                   'init', false);
+%                   %'init', false);
+%                   
+% init.A = A;
+% init.B = B;
+% init.C = C;
+% init.lambda = lambda;
+% warning('on');
+
+beta = 1000;
+beta_peroid = 0;
+eta1 = 0.01;
+R = 10;
+max_iter = 200;
+[lambda, A, B, C, cost, Xten, Yten, rmse] = TVART_alt_min_Lijun(X, M, R, ...
+                  'center', center, ...
+                  'eta', eta1, ...
+                  'beta', beta, ...
+                  'beta_peroid', beta_peroid,...
+                  'regularization', 'spline', ...
+                  'verbosity', 2, ...
+                  'peroid',144, ...
                   'max_iter', max_iter, ...
-                  'init', init);
+                  'init', false);
                   %'init', false);
+
                   
 A_r = A; B_r = B; C_r = C; lambda_r = lambda;
 toc;
@@ -180,17 +260,29 @@ plot(M*(1:length(C_r)), C_r, 'linewidth', 0.5);
 %     end
 % end
 
-
-%%
 figure;
 imagesc(C');
 
+% [lambda_r, A_r, B_r, C_r, W_r] = rebalance_2(A, B, C, W_r, 1, 1e-6);
+% [lambda_r, A_r, B_r, C_r, W_r] = reorder_components(lambda_r, A_r, B_r, ...
+%                                                      C_r, W_r);
+%%
 figure;
+C_r = C;
 for i = 1:R
     subplot(R,1,i);
-    plot(diff(C(:,i)));
-    ylim([-0.3,0.3]);
+    plot(diff(C_r(:,i)));
+    %ylim([-0.3,0.3]);
 end
+
+figure;
+plot(M*(1:length(C_r)), C_r, 'linewidth', 0.5);
+
+%%
+clc;
+www = diff(C);
+w = tsne(www,'NumPCAComponents',5,'Perplexity',100);
+gscatter(w(:,1),w(:,2));
 
 %%
 clc;
