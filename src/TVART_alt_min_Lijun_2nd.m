@@ -1,5 +1,5 @@
 function [lambda, A, B, C, cost_vec, varargout] = ...
-    TVART_alt_min_Lijun(data, window_size, r, varargin)
+    TVART_alt_min_Lijun_2nd(data, window_size, r, varargin)
 % TVART_alt_min
 %   Solve TVART problem using alternating minimization.
 %
@@ -492,7 +492,7 @@ end
 function Cnew = solve_C_cg(X, Y, A, B, C, N, M, T, r, eta, beta, beta_period, period, proximal)
 maxit = 24;
 tol = 1e-4;
-diff_mat = setup_smoother(T);
+diff_mat = setup_smoother_2nd(T);
 diff_ped = setup_p_smoother(T,period);
 
     function z = apply_mat(c)
@@ -524,6 +524,10 @@ if proximal
     rhs = rhs + (1/eta) * C;
 end
 rhs = rhs(:);
+
+% apply_mat(rhs);
+
+
 % % profile performance
 % for i = 1:5
 %     apply_mat(rhs);
@@ -565,7 +569,7 @@ if beta > 0
         %         c = c + beta * norm(C(k, :) - C(k-1, :), 2);
         %     end
     elseif strcmp(regularization, 'spline')
-        diff_mat = setup_smoother(T);
+        diff_mat = setup_smoother_2nd(T);
         %c = c + 0.5 * beta * norm(diff(C), 'fro')^2;
         reg2 = 0.5 * beta * norm(diff_mat * C, 'fro')^2;
         c = c + reg2;
@@ -637,6 +641,14 @@ O2  = zeros(T-1, 1);
 D   = [I2 O2]+[O2 -1*I2]; % first difference matrix
 %Dchol = chol( (eta2 * beta) * (D'*D) + eye(T) );
 %sysinv = pinv(sysmat);
+end
+
+
+function D = setup_smoother_2nd(T)
+D = sparse(T-2,T);
+D(1:T-2+1:end) = 1;
+D((T-2)*2+1: T-2+1:end) = 1;
+D((T-2)*1+1: T-2+1:end) = -2;
 end
 
 
